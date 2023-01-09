@@ -1,0 +1,9 @@
+---
+spring:
+  main:
+    banner-mode: off
+  application:
+    name: "harmny-user-service"
+
+server:
+  port: 8081
