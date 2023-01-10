@@ -1,18 +1,21 @@
 package io.harmny.service.user.endpoints
 
-import io.harmny.service.user.model.Application
+import arrow.core.flatMap
+import arrow.core.right
 import io.harmny.service.user.model.User
-import io.harmny.service.user.request.ApplicationCreateRequest
-import io.harmny.service.user.request.ApplicationUpdateRequest
+import io.harmny.service.user.model.toErrorResponse
 import io.harmny.service.user.request.UserCreateRequest
+import io.harmny.service.user.request.UserSignInRequest
 import io.harmny.service.user.request.UserUpdateRequest
-import io.harmny.service.user.service.ApplicationService
+import io.harmny.service.user.response.TokenResponse
+import io.harmny.service.user.response.ValidityResponse
+import io.harmny.service.user.service.TokenService
 import io.harmny.service.user.service.UserService
-import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
@@ -20,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping(path = ["/users"])
 class UserEndpoint(
     private val userService: UserService,
-    private val applicationService: ApplicationService,
+    private val tokenService: TokenService,
 ) {
 
     @PostMapping
@@ -28,54 +31,38 @@ class UserEndpoint(
         return userService.create(request)
     }
 
-    @GetMapping("/{user_id}")
-    fun findUserById(@PathVariable("user_id") userId: String): User? {
-        return userService.findById(userId)
-    }
-
-    @PutMapping("/{user_id}")
+    @PutMapping
     fun updateUser(
-        @PathVariable("user_id") userId: String,
-        request: UserUpdateRequest,
-    ): User? {
-        return userService.update(userId, request)
+        @RequestHeader("Authorization") token: String,
+        @RequestBody request: UserUpdateRequest,
+    ): ResponseEntity<Any> {
+        return tokenService.findActiveUserIdByMasterToken(token)
+            .flatMap { userId -> userService.update(userId, request).right() }
+            .fold(
+                { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
+                { user -> ResponseEntity.ok(user) },
+            )
     }
 
-    @GetMapping("/{user_id}/applications")
-    fun listUserApplications(@PathVariable("user_id") userId: String): List<Application> {
-        return applicationService.findAllByUserId(userId)
+    @PostMapping("/signin")
+    fun signIn(@RequestBody request: UserSignInRequest): ResponseEntity<Any> {
+        return tokenService.signIn(request.email, request.password)
+            .fold(
+                { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
+                { token -> ResponseEntity.ok(TokenResponse(token)) },
+            )
     }
 
-    @PostMapping("/{user_id}/applications")
-    fun createUserApplication(
-        @PathVariable("user_id") userId: String,
-        request: ApplicationCreateRequest,
-    ): Application {
-        return applicationService.create(userId, request)
-    }
-
-    @PutMapping("/{user_id}/applications/{application_id}")
-    fun updateUserApplication(
-        @PathVariable("user_id") userId: String,
-        @PathVariable("application_id") applicationId: String,
-        request: ApplicationUpdateRequest,
-    ): Application {
-        return applicationService.update(userId, applicationId, request)
-    }
-
-    @PutMapping("/{user_id}/applications/{application_id}/token")
-    fun updateUserApplication(
-        @PathVariable("user_id") userId: String,
-        @PathVariable("application_id") applicationId: String,
-    ): Application {
-        return applicationService.rotateToken(userId, applicationId)
-    }
-
-    @DeleteMapping("/{user_id}/applications/{application_id}")
-    fun deleteUserApplication(
-        @PathVariable("user_id") userId: String,
-        @PathVariable("application_id") applicationId: String,
-    ): Application {
-        return applicationService.delete(userId, applicationId)
+    @PostMapping("/validation")
+    fun validate(
+        @RequestHeader("Authorization") token: String,
+        @RequestHeader("Request-URI") requestUri: String,
+        @RequestHeader("Request-Method") requestMethod: String,
+    ): ResponseEntity<Any> {
+        return tokenService.validate(token, requestMethod, requestUri)
+            .fold(
+                { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
+                { validity -> ResponseEntity.ok(ValidityResponse(validity)) },
+            )
     }
 }

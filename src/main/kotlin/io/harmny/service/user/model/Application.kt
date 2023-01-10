@@ -9,5 +9,4 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 data class Application(
     val id: String,
     val name: String,
-    val token: String,
 )

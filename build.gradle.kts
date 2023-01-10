@@ -22,6 +22,8 @@ dependencies {
 
     implementation("org.springdoc:springdoc-openapi-ui:1.6.14")
 
+    implementation("io.arrow-kt:arrow-core:1.1.3")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 

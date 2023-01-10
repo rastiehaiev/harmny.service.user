@@ -16,6 +16,10 @@ class ApplicationService {
         TODO()
     }
 
+    fun findById(userId: String, applicationId: String): Application? {
+        TODO("Not yet implemented")
+    }
+
     fun update(
         userId: String,
         applicationId: String,
