@@ -89,6 +89,6 @@ class TokenService(
     }
 
     private fun Token.toJwtString(): String {
-        TODO()
+        return tokenHandler.generate(this)
     }
 }

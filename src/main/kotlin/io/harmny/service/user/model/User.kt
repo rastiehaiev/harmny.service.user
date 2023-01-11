@@ -9,8 +9,8 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 data class User(
     val id: String,
     val firstName: String,
-    val lastName: String,
-    val active: Boolean = true,
+    val lastName: String?,
+    val active: Boolean = false,
     val email: String,
     val password: String,
 )

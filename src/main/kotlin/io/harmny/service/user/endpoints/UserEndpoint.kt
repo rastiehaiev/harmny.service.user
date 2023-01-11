@@ -11,12 +11,14 @@ import io.harmny.service.user.response.TokenResponse
 import io.harmny.service.user.response.ValidityResponse
 import io.harmny.service.user.service.TokenService
 import io.harmny.service.user.service.UserService
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -27,13 +29,14 @@ class UserEndpoint(
 ) {
 
     @PostMapping
-    fun createUser(request: UserCreateRequest): User {
+    @ResponseStatus(HttpStatus.CREATED)
+    fun createUser(@RequestBody request: UserCreateRequest): User {
         return userService.create(request)
     }
 
     @PutMapping
     fun updateUser(
-        @RequestHeader("Authorization") token: String,
+        @RequestHeader("X-Token") token: String,
         @RequestBody request: UserUpdateRequest,
     ): ResponseEntity<Any> {
         return tokenService.findActiveUserIdByMasterToken(token)
@@ -55,9 +58,9 @@ class UserEndpoint(
 
     @PostMapping("/validation")
     fun validate(
-        @RequestHeader("Authorization") token: String,
-        @RequestHeader("Request-URI") requestUri: String,
-        @RequestHeader("Request-Method") requestMethod: String,
+        @RequestHeader("X-Token") token: String,
+        @RequestHeader("X-Request-URI") requestUri: String,
+        @RequestHeader("X-Request-Method") requestMethod: String,
     ): ResponseEntity<Any> {
         return tokenService.validate(token, requestMethod, requestUri)
             .fold(

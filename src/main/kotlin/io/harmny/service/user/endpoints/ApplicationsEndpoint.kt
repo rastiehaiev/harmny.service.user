@@ -25,7 +25,7 @@ class ApplicationsEndpoint(
 
     @GetMapping
     fun listUserApplications(
-        @RequestHeader("Authorization") token: String,
+        @RequestHeader("X-Token") token: String,
     ): ResponseEntity<Any> {
         return tokenService.findActiveUserIdByMasterToken(token)
             .map { userId -> applicationService.findAllByUserId(userId) }
@@ -37,7 +37,7 @@ class ApplicationsEndpoint(
 
     @PostMapping
     fun createUserApplication(
-        @RequestHeader("Authorization") token: String,
+        @RequestHeader("X-Token") token: String,
         @RequestBody request: ApplicationCreateRequest,
     ): ResponseEntity<Any> {
         return tokenService.findActiveUserIdByMasterToken(token)
@@ -50,7 +50,7 @@ class ApplicationsEndpoint(
 
     @PutMapping("/{application_id}")
     fun updateUserApplication(
-        @RequestHeader("Authorization") token: String,
+        @RequestHeader("X-Token") token: String,
         @PathVariable("application_id") applicationId: String,
         @RequestBody request: ApplicationUpdateRequest,
     ): ResponseEntity<Any> {
@@ -64,7 +64,7 @@ class ApplicationsEndpoint(
 
     @DeleteMapping("/{application_id}")
     fun deleteUserApplication(
-        @RequestHeader("Authorization") token: String,
+        @RequestHeader("X-Token") token: String,
         @PathVariable("application_id") applicationId: String,
     ): ResponseEntity<Any> {
         return tokenService.findActiveUserIdByMasterToken(token)
