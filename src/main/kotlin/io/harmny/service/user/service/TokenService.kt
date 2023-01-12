@@ -8,8 +8,6 @@ import io.harmny.service.user.instruments.TokenHandler
 import io.harmny.service.user.model.Fail
 import io.harmny.service.user.model.FailReason
 import io.harmny.service.user.model.Token
-import io.harmny.service.user.model.TokenAccessType
-import io.harmny.service.user.model.TokenResourceType
 import org.springframework.stereotype.Service
 import java.net.URI
 import java.time.Instant
@@ -25,7 +23,7 @@ class TokenService(
     fun findActiveUserIdByMasterToken(tokenString: String): Either<Fail, String> {
         return tokenHandler.parse(tokenString)
             .flatMap { token ->
-                token.takeIf { it.master }?.userId?.right() ?: Fail.resourceUnavailable().left()
+                token.takeIf { it.isMaster() }?.userId?.right() ?: Fail.resourceUnavailable().left()
             }.flatMap { userId ->
                 userService.findById(userId)?.right() ?: Fail.userNotFound().left()
             }.flatMap { user ->
@@ -41,7 +39,6 @@ class TokenService(
 
         return Token(
             userId = userId,
-            master = true,
             expirationTime = Instant.now().plus(10, ChronoUnit.MINUTES),
         ).toJwtString().right()
     }
@@ -68,16 +65,17 @@ class TokenService(
                 val expirationTime = token.expirationTime
                 if (expirationTime != null && expirationTime.isBefore(Instant.now())) {
                     Fail.unauthenticated(FailReason.TOKEN_EXPIRED).left()
-                } else if (token.master) {
+                } else if (token.isMaster()) {
                     Either.Right(true)
                 } else if (token.permissions.isNotEmpty()) {
+
                     val requestPath = URI.create(requestUri).path
-                    val (_, accessString, _) = token.permissions.firstOrNull {
-                        val resource = TokenResourceType.byCode(it.resource) ?: return@flatMap Fail.invalidToken().left()
+                    val (_, access, _) = token.permissions.firstOrNull { (resource) ->
                         requestPath.contains(resource.path)
                     } ?: return@flatMap Fail.unauthorized(FailReason.RESOURCE_NOT_ALLOWED).left()
-                    val access = TokenAccessType.byCode(accessString) ?: return@flatMap Fail.invalidToken().left()
-                    if (access == TokenAccessType.R && !method.equals("GET", ignoreCase = true)) {
+
+                    val allowedMethods = access.flatMap { it.allowedMethods.toList() }.map { it.name }.distinct()
+                    if (method.uppercase() !in allowedMethods) {
                         return@flatMap Fail.unauthorized(FailReason.WRITE_OPERATIONS_NOT_ALLOWED).left()
                     } else {
                         Either.Right(true)

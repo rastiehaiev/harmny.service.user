@@ -2,11 +2,13 @@ package io.harmny.service.user.instruments
 
 import arrow.core.Either
 import arrow.core.left
-import arrow.core.right
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.harmny.service.user.model.Fail
 import io.harmny.service.user.model.Token
+import io.harmny.service.user.model.TokenCompact
+import io.harmny.service.user.model.compacted
+import io.harmny.service.user.model.loosen
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
 import org.springframework.stereotype.Component
@@ -24,8 +26,8 @@ class TokenHandler(
 
     fun generate(token: Token): String {
         return Jwts.builder()
-            .setClaims(hashMapOf<String, Any>(Pair("token", objectMapper.writeValueAsString(token))))
-            .setIssuedAt(Date(System.currentTimeMillis()))
+            .setClaims(hashMapOf<String, Any>(Pair("token", objectMapper.writeValueAsString(token.compacted()))))
+            .setIssuedAt(Date())
             .setExpiration(Date(System.currentTimeMillis() + ChronoUnit.YEARS.duration.toMillis()))
             .signWith(key)
             .compact()
@@ -34,7 +36,7 @@ class TokenHandler(
     fun parse(token: String): Either<Fail, Token> {
         return try {
             val claims = parser.parseClaimsJws(token).body
-            objectMapper.readValue<Token>(claims.get("token", String::class.java)).right()
+            objectMapper.readValue<TokenCompact>(claims.get("token", String::class.java)).loosen()
         } catch (e: Exception) {
             Fail.invalidToken().left()
         }

@@ -1,28 +1,51 @@
 package io.harmny.service.user.model
 
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.PropertyNamingStrategies
-import com.fasterxml.jackson.databind.annotation.JsonNaming
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
+import org.springframework.http.HttpMethod
 import java.time.Instant
 
-@JsonInclude(JsonInclude.Include.NON_EMPTY)
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
 data class Token(
     val userId: String,
     val applicationId: String? = null,
-    val master: Boolean,
     val permissions: List<TokenPermission> = emptyList(),
     val expirationTime: Instant? = null,
-)
+) {
+    fun isMaster() = applicationId == null
+}
 
 data class TokenPermission(
-    val resource: String,
-    val access: String,
+    val resource: TokenResourceType,
+    val access: List<TokenAccessType>,
     val own: Boolean = true,
 )
 
-enum class TokenAccessType {
-    R, W;
+fun TokenCompact.loosen(): Either<Fail, Token> {
+    val permissions = this.p.map {
+        val resource = TokenResourceType.byCode(it.r) ?: return Fail.invalidToken().left()
+        val accessList = it.a.toCharArray().map { access ->
+            TokenAccessType.byCode(access.toString()) ?: return Fail.invalidToken().left()
+        }
+        TokenPermission(
+            resource = resource,
+            access = accessList,
+            own = it.o != "n",
+        )
+    }
+    return Token(
+        userId = this.u,
+        applicationId = this.a,
+        expirationTime = this.e,
+        permissions = permissions,
+    ).right()
+}
+
+enum class TokenAccessType(vararg val allowedMethods: HttpMethod) {
+    C(HttpMethod.POST),
+    R(HttpMethod.GET),
+    U(HttpMethod.PATCH, HttpMethod.PUT),
+    D(HttpMethod.DELETE);
 
     companion object {
         fun byCode(code: String): TokenAccessType? = TokenAccessType.values().firstOrNull { it.name == code.uppercase() }
@@ -30,7 +53,7 @@ enum class TokenAccessType {
 }
 
 enum class TokenResourceType(
-    private val code: String,
+    val code: String,
     val path: String,
 ) {
     BOOK("b", "/books"),
