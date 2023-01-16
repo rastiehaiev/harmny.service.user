@@ -2,7 +2,6 @@ package io.harmny.service.user.endpoints
 
 import arrow.core.flatMap
 import arrow.core.right
-import io.harmny.service.user.model.User
 import io.harmny.service.user.model.toErrorResponse
 import io.harmny.service.user.request.UserCreateRequest
 import io.harmny.service.user.request.UserSignInRequest
@@ -30,8 +29,12 @@ class UserEndpoint(
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    fun createUser(@RequestBody request: UserCreateRequest): User {
+    fun createUser(@RequestBody request: UserCreateRequest): ResponseEntity<Any> {
         return userService.create(request)
+            .fold(
+                { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
+                { user -> ResponseEntity.ok(user) },
+            )
     }
 
     @PutMapping

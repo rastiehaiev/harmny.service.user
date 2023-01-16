@@ -1,6 +1,7 @@
 package io.harmny.service.user.service
 
 import arrow.core.Either
+import arrow.core.left
 import io.harmny.service.user.model.Fail
 import io.harmny.service.user.model.User
 import io.harmny.service.user.repository.UserRepository
@@ -22,7 +23,7 @@ class UserService(
         return userRepository.findByEmailAndPassword(email, password)
     }
 
-    fun create(request: UserCreateRequest): User {
+    fun create(request: UserCreateRequest): Either<Fail, User> {
         val user = User(
             id = UUID.randomUUID().toString(),
             firstName = request.firstName,
@@ -31,11 +32,12 @@ class UserService(
             password = request.password,
             active = true,
         )
-        userRepository.save(user)
-        return user
+        return userRepository.save(user)
     }
 
     fun update(userId: String, request: UserUpdateRequest): Either<Fail, User> {
+        val user = userRepository.findById(userId) ?: return Fail.userNotFound.left()
+
         TODO()
     }
 }

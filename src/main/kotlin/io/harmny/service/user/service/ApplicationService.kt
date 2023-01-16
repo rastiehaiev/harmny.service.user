@@ -17,7 +17,7 @@ class ApplicationService {
     }
 
     fun findById(userId: String, applicationId: String): Application? {
-        TODO("Not yet implemented")
+        TODO()
     }
 
     fun update(

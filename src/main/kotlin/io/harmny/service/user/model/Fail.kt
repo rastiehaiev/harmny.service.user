@@ -11,15 +11,17 @@ data class Fail(
 
         fun unauthenticated(reason: FailReason): Fail = Fail(statusCode = 401, reason)
 
-        fun userNotFound(): Fail = unauthenticated(FailReason.USER_NOT_FOUND)
-
-        fun userNotActive(): Fail = unauthenticated(FailReason.USER_NOT_ACTIVE)
-
         fun unauthorized(reason: FailReason): Fail = Fail(statusCode = 403, reason)
 
-        fun resourceUnavailable(): Fail = unauthorized(FailReason.RESOURCE_NOT_ALLOWED)
+        val userNotFound: Fail = unauthenticated(FailReason.USER_NOT_FOUND)
 
-        fun invalidToken(): Fail = unauthorized(FailReason.TOKEN_INVALID)
+        val userAlreadyExists: Fail = Fail(statusCode = 409, reason = FailReason.USER_EXISTS)
+
+        val userNotActive: Fail = unauthenticated(FailReason.USER_NOT_ACTIVE)
+
+        val resourceUnavailable: Fail = unauthorized(FailReason.RESOURCE_NOT_ALLOWED)
+
+        val invalidToken: Fail = unauthorized(FailReason.TOKEN_INVALID)
     }
 }
 
@@ -32,6 +34,7 @@ enum class FailReason {
     WRITE_OPERATIONS_NOT_ALLOWED,
     USER_NOT_ACTIVE,
     USER_NOT_FOUND,
+    USER_EXISTS,
 }
 
 fun Fail.toErrorResponse(): ErrorResponse {

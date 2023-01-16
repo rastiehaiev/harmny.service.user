@@ -23,9 +23,9 @@ data class TokenPermission(
 
 fun TokenCompact.loosen(): Either<Fail, Token> {
     val permissions = this.p.map {
-        val resource = TokenResourceType.byCode(it.r) ?: return Fail.invalidToken().left()
+        val resource = TokenResourceType.byCode(it.r) ?: return Fail.invalidToken.left()
         val accessList = it.a.toCharArray().map { access ->
-            TokenAccessType.byCode(access.toString()) ?: return Fail.invalidToken().left()
+            TokenAccessType.byCode(access.toString()) ?: return Fail.invalidToken.left()
         }
         TokenPermission(
             resource = resource,

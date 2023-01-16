@@ -23,11 +23,11 @@ class TokenService(
     fun findActiveUserIdByMasterToken(tokenString: String): Either<Fail, String> {
         return tokenHandler.parse(tokenString)
             .flatMap { token ->
-                token.takeIf { it.isMaster() }?.userId?.right() ?: Fail.resourceUnavailable().left()
+                token.takeIf { it.isMaster() }?.userId?.right() ?: Fail.resourceUnavailable.left()
             }.flatMap { userId ->
-                userService.findById(userId)?.right() ?: Fail.userNotFound().left()
+                userService.findById(userId)?.right() ?: Fail.userNotFound.left()
             }.flatMap { user ->
-                user.takeIf { it.active }?.id?.right() ?: Fail.userNotActive().left()
+                user.takeIf { it.active }?.id?.right() ?: Fail.userNotActive.left()
             }
     }
 
@@ -50,10 +50,8 @@ class TokenService(
     ): Either<Fail, Boolean> {
         return tokenHandler.parse(tokenString)
             .flatMap { token ->
-                val user = userService.findById(token.userId) ?: return@flatMap Fail.userNotFound().left()
-                if (!user.active) {
-                    return@flatMap Fail.userNotActive().left()
-                }
+                val user = userService.findById(token.userId) ?: return@flatMap Fail.userNotFound.left()
+                if (!user.active) return@flatMap Fail.userNotActive.left()
 
                 val applicationId = token.applicationId
                 if (applicationId != null) {

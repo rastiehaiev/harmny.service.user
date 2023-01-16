@@ -38,7 +38,7 @@ class TokenHandler(
             val claims = parser.parseClaimsJws(token).body
             objectMapper.readValue<TokenCompact>(claims.get("token", String::class.java)).loosen()
         } catch (e: Exception) {
-            Fail.invalidToken().left()
+            Fail.invalidToken.left()
         }
     }
 }
