@@ -7,7 +7,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import io.harmny.service.user.model.Fail
 import io.harmny.service.user.model.Token
 import io.harmny.service.user.model.TokenCompact
-import io.harmny.service.user.model.compacted
+import io.harmny.service.user.model.compact
 import io.harmny.service.user.model.loosen
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
@@ -26,7 +26,7 @@ class TokenHandler(
 
     fun generate(token: Token): String {
         return Jwts.builder()
-            .setClaims(hashMapOf<String, Any>(Pair("token", objectMapper.writeValueAsString(token.compacted()))))
+            .setClaims(hashMapOf<String, Any>(Pair("token", objectMapper.writeValueAsString(token.compact()))))
             .setIssuedAt(Date())
             .setExpiration(Date(System.currentTimeMillis() + ChronoUnit.YEARS.duration.toMillis()))
             .signWith(key)

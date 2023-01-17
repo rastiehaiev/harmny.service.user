@@ -10,18 +10,20 @@ data class Fail(
     companion object {
 
         fun unauthenticated(reason: FailReason): Fail = Fail(statusCode = 401, reason)
-
         fun unauthorized(reason: FailReason): Fail = Fail(statusCode = 403, reason)
+        private fun badRequest(reason: FailReason): Fail = Fail(statusCode = 400, reason)
+        private fun notFound(reason: FailReason): Fail = Fail(statusCode = 404, reason)
 
         val userNotFound: Fail = unauthenticated(FailReason.USER_NOT_FOUND)
-
         val userAlreadyExists: Fail = Fail(statusCode = 409, reason = FailReason.USER_EXISTS)
-
         val userNotActive: Fail = unauthenticated(FailReason.USER_NOT_ACTIVE)
+
+        val applicationNotFound: Fail = notFound(FailReason.APPLICATION_NOT_FOUND)
 
         val resourceUnavailable: Fail = unauthorized(FailReason.RESOURCE_NOT_ALLOWED)
 
         val invalidToken: Fail = unauthorized(FailReason.TOKEN_INVALID)
+        val invalidExpirationTime: Fail = badRequest(FailReason.INVALID_EXPIRATION_TIME)
     }
 }
 
@@ -35,6 +37,8 @@ enum class FailReason {
     USER_NOT_ACTIVE,
     USER_NOT_FOUND,
     USER_EXISTS,
+    INVALID_EXPIRATION_TIME,
+    APPLICATION_NOT_FOUND,
 }
 
 fun Fail.toErrorResponse(): ErrorResponse {

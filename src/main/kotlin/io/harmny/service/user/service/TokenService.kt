@@ -8,6 +8,7 @@ import io.harmny.service.user.instruments.TokenHandler
 import io.harmny.service.user.model.Fail
 import io.harmny.service.user.model.FailReason
 import io.harmny.service.user.model.Token
+import io.harmny.service.user.request.ApplicationTokenRequest
 import org.springframework.stereotype.Service
 import java.net.URI
 import java.time.Instant
@@ -35,11 +36,27 @@ class TokenService(
         val user = userService.findByEmailAndPassword(email, password)
             ?: return Fail.unauthenticated(FailReason.USER_NOT_FOUND_BY_EMAIL_AND_PASSWORD).left()
         val userId = user.takeIf { it.active }?.id
-            ?: return Fail.unauthorized(FailReason.USER_NOT_ACTIVE).left()
+            ?: return Fail.userNotActive.left()
 
         return Token(
             userId = userId,
             expirationTime = Instant.now().plus(10, ChronoUnit.MINUTES),
+        ).toJwtString().right()
+    }
+
+    fun requestApplicationToken(userId: String, request: ApplicationTokenRequest): Either<Fail, String> {
+        applicationService.findById(userId, request.applicationId) ?: return Fail.applicationNotFound.left()
+
+        val expirationTime = request.expirationTime?.let { Instant.ofEpochMilli(it) }?.also {
+            if (it.isBefore(Instant.now())) {
+                return Fail.invalidExpirationTime.left()
+            }
+        }
+        return Token(
+            userId,
+            request.applicationId,
+            request.permissions,
+            expirationTime,
         ).toJwtString().right()
     }
 

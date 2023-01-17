@@ -1,8 +1,11 @@
 package io.harmny.service.user.endpoints
 
+import arrow.core.flatMap
 import io.harmny.service.user.model.toErrorResponse
 import io.harmny.service.user.request.ApplicationCreateRequest
+import io.harmny.service.user.request.ApplicationTokenRequest
 import io.harmny.service.user.request.ApplicationUpdateRequest
+import io.harmny.service.user.response.TokenResponse
 import io.harmny.service.user.service.ApplicationService
 import io.harmny.service.user.service.TokenService
 import org.springframework.http.ResponseEntity
@@ -31,7 +34,7 @@ class ApplicationsEndpoint(
             .map { userId -> applicationService.findAllByUserId(userId) }
             .fold(
                 { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
-                { user -> ResponseEntity.ok(user) },
+                { ResponseEntity.ok(it) },
             )
     }
 
@@ -44,7 +47,20 @@ class ApplicationsEndpoint(
             .map { userId -> applicationService.create(userId, request) }
             .fold(
                 { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
-                { user -> ResponseEntity.ok(user) },
+                { ResponseEntity.ok(it) },
+            )
+    }
+
+    @PostMapping("/token")
+    fun requestUserApplicationToken(
+        @RequestHeader("X-Token") token: String,
+        @RequestBody request: ApplicationTokenRequest,
+    ): ResponseEntity<Any> {
+        return tokenService.findActiveUserIdByMasterToken(token)
+            .flatMap { userId -> tokenService.requestApplicationToken(userId, request) }
+            .fold(
+                { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
+                { applicationToken -> ResponseEntity.ok(TokenResponse(applicationToken)) },
             )
     }
 
@@ -58,7 +74,7 @@ class ApplicationsEndpoint(
             .map { userId -> applicationService.update(userId, applicationId, request) }
             .fold(
                 { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
-                { user -> ResponseEntity.ok(user) },
+                { ResponseEntity.ok(it) },
             )
     }
 
@@ -71,7 +87,7 @@ class ApplicationsEndpoint(
             .map { userId -> applicationService.delete(userId, applicationId) }
             .fold(
                 { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
-                { user -> ResponseEntity.ok(user) },
+                { ResponseEntity.ok(it) },
             )
     }
 }

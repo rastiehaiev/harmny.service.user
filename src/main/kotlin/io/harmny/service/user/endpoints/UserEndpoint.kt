@@ -33,7 +33,7 @@ class UserEndpoint(
         return userService.create(request)
             .fold(
                 { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
-                { user -> ResponseEntity.ok(user) },
+                { ResponseEntity.ok(it) },
             )
     }
 
@@ -46,7 +46,7 @@ class UserEndpoint(
             .flatMap { userId -> userService.update(userId, request).right() }
             .fold(
                 { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
-                { user -> ResponseEntity.ok(user) },
+                { ResponseEntity.ok(it) },
             )
     }
 

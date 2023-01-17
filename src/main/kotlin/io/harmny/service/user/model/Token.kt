@@ -23,32 +23,33 @@ data class TokenPermission(
 
 fun TokenCompact.loosen(): Either<Fail, Token> {
     val permissions = this.p.map {
-        val resource = TokenResourceType.byCode(it.r) ?: return Fail.invalidToken.left()
-        val accessList = it.a.toCharArray().map { access ->
+        val parts = it.split(":").takeIf { parts -> parts.size == 2 || parts.size == 3 } ?: return Fail.invalidToken.left()
+        val resource = TokenResourceType.byCode(parts[0]) ?: return Fail.invalidToken.left()
+        val accessList = parts[1].toCharArray().map { access ->
             TokenAccessType.byCode(access.toString()) ?: return Fail.invalidToken.left()
         }
-        TokenPermission(
-            resource = resource,
-            access = accessList,
-            own = it.o != "n",
-        )
+        val own = parts.takeIf { parts.size == 3 }?.get(2) != "n"
+        TokenPermission(resource = resource, access = accessList, own = own)
     }
     return Token(
         userId = this.u,
         applicationId = this.a,
-        expirationTime = this.e,
+        expirationTime = this.e?.let { Instant.ofEpochMilli(it) },
         permissions = permissions,
     ).right()
 }
 
-enum class TokenAccessType(vararg val allowedMethods: HttpMethod) {
-    C(HttpMethod.POST),
-    R(HttpMethod.GET),
-    U(HttpMethod.PATCH, HttpMethod.PUT),
-    D(HttpMethod.DELETE);
+enum class TokenAccessType(
+    val code: String,
+    vararg val allowedMethods: HttpMethod,
+) {
+    CREATE("c", HttpMethod.POST),
+    READ("r", HttpMethod.GET),
+    UPDATE("u", HttpMethod.PATCH, HttpMethod.PUT),
+    DELETE("d", HttpMethod.DELETE);
 
     companion object {
-        fun byCode(code: String): TokenAccessType? = TokenAccessType.values().firstOrNull { it.name == code.uppercase() }
+        fun byCode(code: String): TokenAccessType? = TokenAccessType.values().firstOrNull { it.code == code.lowercase() }
     }
 }
 
@@ -61,6 +62,6 @@ enum class TokenResourceType(
     ROUTINE("r", "/routines");
 
     companion object {
-        fun byCode(code: String): TokenResourceType? = values().firstOrNull { it.code == code }
+        fun byCode(code: String): TokenResourceType? = values().firstOrNull { it.code == code.lowercase() }
     }
 }

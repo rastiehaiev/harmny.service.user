@@ -1,7 +1,6 @@
 package io.harmny.service.user.service
 
 import arrow.core.Either
-import arrow.core.left
 import io.harmny.service.user.model.Fail
 import io.harmny.service.user.model.User
 import io.harmny.service.user.repository.UserRepository
@@ -36,8 +35,7 @@ class UserService(
     }
 
     fun update(userId: String, request: UserUpdateRequest): Either<Fail, User> {
-        val user = userRepository.findById(userId) ?: return Fail.userNotFound.left()
-
+        // val user = userRepository.findById(userId) ?: return Fail.userNotFound.left()
         TODO()
     }
 }
