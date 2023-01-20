@@ -8,7 +8,7 @@ import io.harmny.service.user.request.UserSignInRequest
 import io.harmny.service.user.request.UserUpdateRequest
 import io.harmny.service.user.response.TokenResponse
 import io.harmny.service.user.response.ValidityResponse
-import io.harmny.service.user.service.TokenService
+import io.harmny.service.user.service.AuthorizationService
 import io.harmny.service.user.service.UserService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -24,12 +24,14 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping(path = ["/users"])
 class UserEndpoint(
     private val userService: UserService,
-    private val tokenService: TokenService,
+    private val authorizationService: AuthorizationService,
 ) {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    fun createUser(@RequestBody request: UserCreateRequest): ResponseEntity<Any> {
+    fun createUser(
+        @RequestBody request: UserCreateRequest,
+    ): ResponseEntity<Any> {
         return userService.create(request)
             .fold(
                 { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
@@ -42,7 +44,7 @@ class UserEndpoint(
         @RequestHeader("X-Token") token: String,
         @RequestBody request: UserUpdateRequest,
     ): ResponseEntity<Any> {
-        return tokenService.findActiveUserIdByMasterToken(token)
+        return authorizationService.findActiveUserId(token)
             .flatMap { userId -> userService.update(userId, request).right() }
             .fold(
                 { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
@@ -51,8 +53,10 @@ class UserEndpoint(
     }
 
     @PostMapping("/signin")
-    fun signIn(@RequestBody request: UserSignInRequest): ResponseEntity<Any> {
-        return tokenService.signIn(request.email, request.password)
+    fun signIn(
+        @RequestBody request: UserSignInRequest,
+    ): ResponseEntity<Any> {
+        return authorizationService.signIn(request.email, request.password)
             .fold(
                 { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
                 { token -> ResponseEntity.ok(TokenResponse(token)) },
@@ -65,7 +69,7 @@ class UserEndpoint(
         @RequestHeader("X-Request-URI") requestUri: String,
         @RequestHeader("X-Request-Method") requestMethod: String,
     ): ResponseEntity<Any> {
-        return tokenService.validate(token, requestMethod, requestUri)
+        return authorizationService.validate(token, requestMethod, requestUri)
             .fold(
                 { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
                 { validity -> ResponseEntity.ok(ValidityResponse(validity)) },

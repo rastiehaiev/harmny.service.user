@@ -8,7 +8,7 @@ import io.harmny.service.user.model.TokenPermission
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
 data class ApplicationTokenRequest(
-    val applicationId: String,
+    val name: String,
     val permissions: List<TokenPermission>,
     val expirationTime: Long?,
 )

@@ -1,5 +1,6 @@
 package io.harmny.service.user.model
 
+import io.harmny.service.user.response.ErrorObject
 import io.harmny.service.user.response.ErrorResponse
 
 data class Fail(
@@ -19,6 +20,10 @@ data class Fail(
         val userNotActive: Fail = unauthenticated(FailReason.USER_NOT_ACTIVE)
 
         val applicationNotFound: Fail = notFound(FailReason.APPLICATION_NOT_FOUND)
+        val applicationDoesNotExist: Fail = unauthorized(FailReason.APPLICATION_DOES_NOT_EXIST)
+        val tokenDoesNotExist: Fail = unauthorized(FailReason.TOKEN_DOES_NOT_EXIST)
+
+        val tokenNotFound: Fail = notFound(FailReason.TOKEN_NOT_FOUND)
 
         val resourceUnavailable: Fail = unauthorized(FailReason.RESOURCE_NOT_ALLOWED)
 
@@ -39,8 +44,10 @@ enum class FailReason {
     USER_EXISTS,
     INVALID_EXPIRATION_TIME,
     APPLICATION_NOT_FOUND,
+    TOKEN_NOT_FOUND,
+    TOKEN_DOES_NOT_EXIST,
 }
 
 fun Fail.toErrorResponse(): ErrorResponse {
-    return ErrorResponse(type = this.reason.toString())
+    return ErrorResponse(listOf(ErrorObject(this.reason.toString())))
 }
