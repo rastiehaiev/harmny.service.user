@@ -1,7 +1,7 @@
 package io.harmny.service.user.endpoints
 
 import arrow.core.flatMap
-import io.harmny.service.user.model.toErrorResponse
+import io.harmny.service.user.model.toErrorResponseEntity
 import io.harmny.service.user.request.ApplicationCreateRequest
 import io.harmny.service.user.request.ApplicationTokenRequest
 import io.harmny.service.user.request.ApplicationUpdateRequest
@@ -31,11 +31,11 @@ class ApplicationsEndpoint(
     @GetMapping
     fun listApplications(
         @RequestHeader("X-Token") token: String,
-    ): ResponseEntity<Any> {
+    ): ResponseEntity<out Any> {
         return authorizationService.findActiveUserId(token)
             .map { userId -> applicationService.findAllByUserId(userId) }
             .fold(
-                { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
+                { it.toErrorResponseEntity() },
                 { ResponseEntity.ok(it) },
             )
     }
@@ -44,11 +44,11 @@ class ApplicationsEndpoint(
     fun createApplication(
         @RequestHeader("X-Token") token: String,
         @RequestBody request: ApplicationCreateRequest,
-    ): ResponseEntity<Any> {
+    ): ResponseEntity<out Any> {
         return authorizationService.findActiveUserId(token)
             .map { userId -> applicationService.create(userId, request) }
             .fold(
-                { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
+                { it.toErrorResponseEntity() },
                 { ResponseEntity.ok(it) },
             )
     }
@@ -58,11 +58,11 @@ class ApplicationsEndpoint(
         @RequestHeader("X-Token") token: String,
         @PathVariable("application_id") applicationId: String,
         @RequestBody request: ApplicationUpdateRequest,
-    ): ResponseEntity<Any> {
+    ): ResponseEntity<out Any> {
         return authorizationService.findActiveUserId(token)
             .map { userId -> applicationService.update(userId, applicationId, request) }
             .fold(
-                { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
+                { it.toErrorResponseEntity() },
                 { ResponseEntity.ok(it) },
             )
     }
@@ -71,11 +71,11 @@ class ApplicationsEndpoint(
     fun deleteApplication(
         @RequestHeader("X-Token") token: String,
         @PathVariable("application_id") applicationId: String,
-    ): ResponseEntity<Any> {
+    ): ResponseEntity<out Any> {
         return authorizationService.findActiveUserId(token)
             .map { userId -> applicationService.delete(userId, applicationId) }
             .fold(
-                { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
+                { it.toErrorResponseEntity() },
                 { ResponseEntity.ok(it) },
             )
     }
@@ -85,11 +85,11 @@ class ApplicationsEndpoint(
         @RequestHeader("X-Token") token: String,
         @PathVariable("application_id") applicationId: String,
         @RequestBody request: ApplicationTokenRequest,
-    ): ResponseEntity<Any> {
+    ): ResponseEntity<out Any> {
         return authorizationService.findActiveUserId(token)
             .flatMap { userId -> tokenService.create(userId, applicationId, request) }
             .fold(
-                { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
+                { it.toErrorResponseEntity() },
                 { tokenDto ->
                     val applicationToken = authorizationService.toJwtToken(tokenDto)
                     ResponseEntity.ok(tokenDto.copy(token = applicationToken))
@@ -101,11 +101,11 @@ class ApplicationsEndpoint(
     fun listApplicationTokens(
         @RequestHeader("X-Token") token: String,
         @PathVariable("application_id") applicationId: String,
-    ): ResponseEntity<Any> {
+    ): ResponseEntity<out Any> {
         return authorizationService.findActiveUserId(token)
             .map { userId -> tokenService.list(userId, applicationId) }
             .fold(
-                { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
+                { it.toErrorResponseEntity() },
                 { ResponseEntity.ok(it) },
             )
     }
@@ -115,11 +115,11 @@ class ApplicationsEndpoint(
         @RequestHeader("X-Token") token: String,
         @PathVariable("application_id") applicationId: String,
         @PathVariable("token_id") tokenId: String,
-    ): ResponseEntity<Any> {
+    ): ResponseEntity<out Any> {
         return authorizationService.findActiveUserId(token)
             .flatMap { userId -> tokenService.delete(userId, applicationId, tokenId) }
             .fold(
-                { fail -> ResponseEntity.status(fail.statusCode).body(fail.toErrorResponse()) },
+                { it.toErrorResponseEntity() },
                 { ResponseEntity.ok(UnitResponse(it)) },
             )
     }

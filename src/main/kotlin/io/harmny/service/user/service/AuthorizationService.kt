@@ -10,10 +10,10 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.harmny.service.user.model.ApplicationTokenDto
 import io.harmny.service.user.model.Fail
-import io.harmny.service.user.model.FailReason
 import io.harmny.service.user.model.TokenAccessType
 import io.harmny.service.user.model.TokenPermission
 import io.harmny.service.user.model.TokenResourceType
+import io.harmny.service.user.utils.ifLeft
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
 import org.springframework.stereotype.Service
@@ -36,18 +36,19 @@ class AuthorizationService(
     fun findActiveUserId(tokenString: String): Either<Fail, String> {
         return parseToken(tokenString)
             .flatMap { token ->
-                token.takeIf { it.applicationId == null }?.userId?.right() ?: Fail.resourceUnavailable.left()
+                token.takeIf { it.applicationId == null }?.userId?.right() ?: Fail.authorization("resource.not.available")
             }.flatMap { userId ->
-                userService.findById(userId)?.right() ?: Fail.userNotFound.left()
+                userService.findById(userId)?.right() ?: Fail.authorization("user.unknown")
             }.flatMap { user ->
-                user.takeIf { it.active }?.id?.right() ?: Fail.userNotActive.left()
+                user.takeIf { it.active }?.id?.right() ?: Fail.authorization("user.inactive")
             }
     }
 
     fun signIn(email: String, password: String): Either<Fail, String> {
         val user = userService.findByEmailAndPassword(email, password)
-            ?: return Fail.unauthenticated(FailReason.USER_NOT_FOUND_BY_EMAIL_AND_PASSWORD).left()
-        val userId = user.takeIf { it.active }?.id ?: return Fail.userNotActive.left()
+            ?: return Fail.authorization(key = "user.not.found.by.credentials")
+        val userId = user.takeIf { it.active }?.id
+            ?: return Fail.authorization(key = "user.inactive")
 
         val expirationTime = Instant.now().plus(10, ChronoUnit.MINUTES).toEpochMilli()
         return TokenCompact(userId, expirationTime = expirationTime).toJwtString().right()
@@ -62,43 +63,36 @@ class AuthorizationService(
         method: String,
         requestUri: String,
     ): Either<Fail, Boolean> {
-        return parseToken(tokenString)
-            .flatMap { token ->
-                val expirationTime = token.expirationTime?.let { Instant.ofEpochMilli(it) }
-                if (expirationTime != null && expirationTime.isBefore(Instant.now())) {
-                    Fail.unauthenticated(FailReason.TOKEN_EXPIRED).left()
-                }
+        val token = parseToken(tokenString).ifLeft { return it.left() }
+        val expirationTime = token.expirationTime?.let { Instant.ofEpochMilli(it) }
+        if (expirationTime != null && expirationTime.isBefore(Instant.now())) {
+            return Fail.authorization(key = "token.expired")
+        }
 
-                val user = userService.findById(token.userId) ?: return@flatMap Fail.userNotFound.left()
-                if (!user.active) return@flatMap Fail.userNotActive.left()
+        val user = userService.findById(token.userId) ?: return Fail.authorization("user.not.found")
+        if (!user.active) return Fail.authorization("user.inactive")
 
-                val applicationId = token.applicationId
-                if (applicationId == null) {
-                    Either.Right(true)
-                } else {
-                    token.permissions.toTokenPermissions().flatMap { permissions ->
-                        val checkFailed = checkTokenPermissions(requestUri, method, permissions)
-                        checkFailed?.left() ?: checkApplicationTokenExists(user.id, applicationId, token)
-                    }
-                }
-            }
+        val applicationId = token.applicationId ?: return Either.Right(true)
+        return token.permissions.toTokenPermissions()
+            .flatMap { permissions -> checkTokenPermissions(requestUri, method, permissions) }
+            .flatMap { checkApplicationTokenExists(user.id, applicationId, token) }
     }
 
     private fun checkTokenPermissions(
         requestUri: String,
         method: String,
         permissions: List<TokenPermission>,
-    ): Fail? {
+    ): Either<Fail, Boolean> {
         val requestPath = URI.create(requestUri).path
         val (_, access, _) = permissions.firstOrNull { (resource) ->
             requestPath.contains(resource.path)
-        } ?: return Fail.unauthorized(FailReason.RESOURCE_NOT_ALLOWED)
+        } ?: return Fail.authorization("resource.not.available")
 
         val allowedMethods = access.flatMap { it.allowedMethods.toList() }.map { it.name }.distinct()
         return if (method.uppercase() !in allowedMethods) {
-            Fail.unauthorized(FailReason.WRITE_OPERATIONS_NOT_ALLOWED)
+            Fail.authorization("operation.not.allowed")
         } else {
-            null
+            true.right()
         }
     }
 
@@ -107,25 +101,17 @@ class AuthorizationService(
         applicationId: String,
         token: TokenCompact,
     ): Either<Fail, Boolean> {
-        val tokenId = token.id
-        return if (tokenId == null) {
-            Fail.invalidToken.left()
-        } else {
-            val applicationToken = tokenService.get(userId, applicationId, tokenId)
-            if (applicationToken == null) {
-                Fail.tokenDoesNotExist.left()
-            } else {
-                Either.Right(true)
-            }
-        }
+        val tokenId = token.id ?: return Fail.authorization(key = "token.invalid")
+        tokenService.get(userId, applicationId, tokenId).ifLeft { return it.left() }
+        return Either.Right(true)
     }
 
     private fun List<String>?.toTokenPermissions(): Either<Fail, List<TokenPermission>> {
         val permissions = this?.map {
-            val parts = it.split(":").takeIf { parts -> parts.size == 2 || parts.size == 3 } ?: return Fail.invalidToken.left()
-            val resource = TokenResourceType.byCode(parts[0]) ?: return Fail.invalidToken.left()
+            val parts = it.split(":").takeIf { parts -> parts.size == 2 || parts.size == 3 } ?: return Fail.authorization("token.invalid")
+            val resource = TokenResourceType.byCode(parts[0]) ?: return Fail.authorization("token.invalid")
             val accessList = parts[1].toCharArray().map { access ->
-                TokenAccessType.byCode(access.toString()) ?: return Fail.invalidToken.left()
+                TokenAccessType.byCode(access.toString()) ?: return Fail.authorization("token.invalid")
             }
             val own = parts.takeIf { parts.size == 3 }?.get(2) != "n"
             TokenPermission(resource = resource, access = accessList, own = own)
@@ -145,7 +131,7 @@ class AuthorizationService(
             val claims = parser.parseClaimsJws(token).body
             objectMapper.readValue<TokenCompact>(claims.get("token", String::class.java)).right()
         } catch (e: Exception) {
-            Fail.invalidToken.left()
+            Fail.authorization(key = "token.invalid")
         }
     }
 }

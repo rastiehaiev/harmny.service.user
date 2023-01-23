@@ -8,5 +8,5 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
 data class UserUpdateRequest(
     val firstName: String,
-    val lastName: String,
+    val lastName: String?,
 )

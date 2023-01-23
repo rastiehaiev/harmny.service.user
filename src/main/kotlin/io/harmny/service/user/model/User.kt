@@ -12,5 +12,4 @@ data class User(
     val lastName: String?,
     val active: Boolean = false,
     val email: String,
-    val password: String,
 )

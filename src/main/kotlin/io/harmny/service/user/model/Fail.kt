@@ -1,53 +1,87 @@
 package io.harmny.service.user.model
 
+import arrow.core.Either
+import arrow.core.left
 import io.harmny.service.user.response.ErrorObject
 import io.harmny.service.user.response.ErrorResponse
+import org.springframework.http.ResponseEntity
 
 data class Fail(
-    val statusCode: Int,
-    val reason: FailReason,
+    val type: String,
+    val description: String?,
+    val properties: Map<String, String>?,
 ) {
 
     companion object {
 
-        fun unauthenticated(reason: FailReason): Fail = Fail(statusCode = 401, reason)
-        fun unauthorized(reason: FailReason): Fail = Fail(statusCode = 403, reason)
-        private fun badRequest(reason: FailReason): Fail = Fail(statusCode = 400, reason)
-        private fun notFound(reason: FailReason): Fail = Fail(statusCode = 404, reason)
+        fun <S> input(
+            key: String = "",
+            description: String? = null,
+            properties: Map<String, String>? = null,
+        ): Either<Fail, S> {
+            return general("fail.input", key, description, properties)
+        }
 
-        val userNotFound: Fail = unauthenticated(FailReason.USER_NOT_FOUND)
-        val userAlreadyExists: Fail = Fail(statusCode = 409, reason = FailReason.USER_EXISTS)
-        val userNotActive: Fail = unauthenticated(FailReason.USER_NOT_ACTIVE)
+        fun <S> resource(
+            key: String = "",
+            description: String? = null,
+            properties: Map<String, String>? = null,
+        ): Either<Fail, S> {
+            return general("fail.resource", key, description, properties)
+        }
 
-        val applicationNotFound: Fail = notFound(FailReason.APPLICATION_NOT_FOUND)
-        val applicationDoesNotExist: Fail = unauthorized(FailReason.APPLICATION_DOES_NOT_EXIST)
-        val tokenDoesNotExist: Fail = unauthorized(FailReason.TOKEN_DOES_NOT_EXIST)
+        fun <S> authentication(
+            key: String = "",
+            description: String? = null,
+            properties: Map<String, String>? = null,
+        ): Either<Fail, S> {
+            return general("fail.authentication", key, description, properties)
+        }
 
-        val tokenNotFound: Fail = notFound(FailReason.TOKEN_NOT_FOUND)
+        fun <S> authorization(
+            key: String = "",
+            description: String? = null,
+            properties: Map<String, String>? = null,
+        ): Either<Fail, S> {
+            return general("fail.authorization", key, description, properties)
+        }
 
-        val resourceUnavailable: Fail = unauthorized(FailReason.RESOURCE_NOT_ALLOWED)
+        fun <S> conflict(
+            key: String = "",
+            description: String? = null,
+            properties: Map<String, String>? = null,
+        ): Either<Fail, S> {
+            return general("fail.conflict", key, description, properties)
+        }
 
-        val invalidToken: Fail = unauthorized(FailReason.TOKEN_INVALID)
-        val invalidExpirationTime: Fail = badRequest(FailReason.INVALID_EXPIRATION_TIME)
+        fun <S> internal(
+            key: String = "",
+            description: String? = null,
+            properties: Map<String, String>? = null,
+        ): Either<Fail, S> {
+            return general("fail.internal", key, description, properties)
+        }
+
+        private fun <S> general(
+            type: String,
+            key: String,
+            description: String? = null,
+            properties: Map<String, String>? = null,
+        ): Either<Fail, S> {
+            val resultType = if (key.isNotBlank()) "$type.$key" else type
+            return Fail(resultType, description, properties).left()
+        }
     }
 }
 
-enum class FailReason {
-    TOKEN_EXPIRED,
-    TOKEN_INVALID,
-    APPLICATION_DOES_NOT_EXIST,
-    USER_NOT_FOUND_BY_EMAIL_AND_PASSWORD,
-    RESOURCE_NOT_ALLOWED,
-    WRITE_OPERATIONS_NOT_ALLOWED,
-    USER_NOT_ACTIVE,
-    USER_NOT_FOUND,
-    USER_EXISTS,
-    INVALID_EXPIRATION_TIME,
-    APPLICATION_NOT_FOUND,
-    TOKEN_NOT_FOUND,
-    TOKEN_DOES_NOT_EXIST,
-}
-
-fun Fail.toErrorResponse(): ErrorResponse {
-    return ErrorResponse(listOf(ErrorObject(this.reason.toString())))
+fun Fail.toErrorResponseEntity(): ResponseEntity<ErrorResponse> {
+    val statusCode = when {
+        this.type.startsWith("fail.resource") -> 404
+        this.type.startsWith("fail.authentication") -> 401
+        this.type.startsWith("fail.authorization") -> 403
+        this.type.startsWith("fail.conflict") -> 409
+        this.type.startsWith("fail.internal") -> 500
+        else -> 400
+    }
+    return ResponseEntity.status(statusCode).body(ErrorResponse(ErrorObject(type, description, properties)))
 }
