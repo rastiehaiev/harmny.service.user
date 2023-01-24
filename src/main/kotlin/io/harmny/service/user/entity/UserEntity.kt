@@ -12,4 +12,5 @@ data class UserEntity(
     var active: Boolean = false,
     val email: String,
     var password: String,
+    var masterTokenId: String? = null,
 )

@@ -49,6 +49,15 @@ class UserEndpoint(
             .let { ResponseEntity.ok(it) }
     }
 
+    @PostMapping("/master-token")
+    fun requestMasterToken(
+        @RequestHeader("X-Token") token: String,
+    ): ResponseEntity<out Any> {
+        return authorizationService.generateMasterToken(token)
+            .ifLeft { return it.toErrorResponseEntity() }
+            .let { ResponseEntity.ok(TokenResponse(it)) }
+    }
+
     @PostMapping("/signin")
     fun signIn(
         @RequestBody request: UserSignInRequest,

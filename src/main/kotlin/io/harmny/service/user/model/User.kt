@@ -1,5 +1,6 @@
 package io.harmny.service.user.model
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
@@ -12,4 +13,6 @@ data class User(
     val lastName: String?,
     val active: Boolean = false,
     val email: String,
+    @JsonIgnore
+    val masterTokenId: String? = null,
 )

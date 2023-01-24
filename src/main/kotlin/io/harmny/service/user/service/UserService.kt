@@ -11,6 +11,7 @@ import io.harmny.service.user.repository.UserRepository
 import io.harmny.service.user.request.UserCreateRequest
 import io.harmny.service.user.request.UserUpdateRequest
 import io.harmny.service.user.utils.ifLeft
+import org.apache.commons.lang3.RandomStringUtils
 import org.apache.commons.validator.routines.EmailValidator
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -71,6 +72,12 @@ class UserService(
         return userRepository.save(user).toModel().right()
     }
 
+    fun updateMasterTokenId(userId: String): Either<Fail, User> {
+        val user = userRepository.findByIdOrNull(userId) ?: return Fail.input(key = "user.not.found")
+        user.masterTokenId = RandomStringUtils.randomAlphanumeric(8)
+        return userRepository.save(user).toModel().right()
+    }
+
     private fun validatePassword(password: String): Either<Fail, String> {
         if (password.length > 100) {
             return Fail.input(
@@ -116,6 +123,7 @@ class UserService(
             lastName = this.lastName,
             active = this.active,
             email = this.email,
+            masterTokenId = this.masterTokenId,
         )
     }
 }

@@ -13,6 +13,7 @@ import io.harmny.service.user.model.Fail
 import io.harmny.service.user.model.TokenAccessType
 import io.harmny.service.user.model.TokenPermission
 import io.harmny.service.user.model.TokenResourceType
+import io.harmny.service.user.model.User
 import io.harmny.service.user.utils.ifLeft
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
@@ -33,14 +34,32 @@ class AuthorizationService(
     private val key = Keys.hmacShaKeyFor(rawKey.toByteArray())
     private val parser = Jwts.parserBuilder().setSigningKey(key).build()
 
+    fun generateMasterToken(tokenString: String): Either<Fail, String> {
+        return findActiveUser(tokenString).flatMap { user ->
+            userService.updateMasterTokenId(user.id)
+        }.flatMap { user ->
+            val masterTokenId = user.masterTokenId
+            if (masterTokenId == null) {
+                Fail.internal("master.token.creation")
+            } else {
+                val token = TokenCompact(id = masterTokenId, userId = user.id)
+                token.toJwtString().right()
+            }
+        }
+    }
+
     fun findActiveUserId(tokenString: String): Either<Fail, String> {
+        return findActiveUser(tokenString).map { user -> user.id }
+    }
+
+    private fun findActiveUser(tokenString: String): Either<Fail, User> {
         return parseToken(tokenString)
             .flatMap { token ->
                 token.takeIf { it.applicationId == null }?.userId?.right() ?: Fail.authorization("resource.not.available")
             }.flatMap { userId ->
                 userService.findById(userId)?.right() ?: Fail.authorization("user.unknown")
             }.flatMap { user ->
-                user.takeIf { it.active }?.id?.right() ?: Fail.authorization("user.inactive")
+                user.takeIf { it.active }?.right() ?: Fail.authorization("user.inactive")
             }
     }
 
@@ -72,10 +91,26 @@ class AuthorizationService(
         val user = userService.findById(token.userId) ?: return Fail.authorization("user.not.found")
         if (!user.active) return Fail.authorization("user.inactive")
 
-        val applicationId = token.applicationId ?: return Either.Right(true)
-        return token.permissions.toTokenPermissions()
-            .flatMap { permissions -> checkTokenPermissions(requestUri, method, permissions) }
-            .flatMap { checkApplicationTokenExists(user.id, applicationId, token) }
+        val tokenId = token.id
+        val applicationId = token.applicationId
+        return if (applicationId == null) {
+            if (tokenId != null) {
+                // handle master tokens - valid if the same ID matches db value
+                if (user.masterTokenId == tokenId) {
+                    Either.Right(true)
+                } else {
+                    Fail.authentication("token.master.invalid")
+                }
+            } else {
+                // handle user's 'UI' token - valid until expiration time
+                Either.Right(true)
+            }
+        } else {
+            // handle application tokens
+            token.permissions.toTokenPermissions()
+                .flatMap { permissions -> checkTokenPermissions(requestUri, method, permissions) }
+                .flatMap { checkApplicationTokenExists(user.id, applicationId, token) }
+        }
     }
 
     private fun checkTokenPermissions(
