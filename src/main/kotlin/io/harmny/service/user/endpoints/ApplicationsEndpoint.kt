@@ -46,7 +46,7 @@ class ApplicationsEndpoint(
         @RequestBody request: ApplicationCreateRequest,
     ): ResponseEntity<out Any> {
         return authorizationService.findActiveUserId(token)
-            .map { userId -> applicationService.create(userId, request) }
+            .flatMap { userId -> applicationService.create(userId, request) }
             .fold(
                 { it.toErrorResponseEntity() },
                 { ResponseEntity.ok(it) },
@@ -60,7 +60,7 @@ class ApplicationsEndpoint(
         @RequestBody request: ApplicationUpdateRequest,
     ): ResponseEntity<out Any> {
         return authorizationService.findActiveUserId(token)
-            .map { userId -> applicationService.update(userId, applicationId, request) }
+            .flatMap { userId -> applicationService.update(userId, applicationId, request) }
             .fold(
                 { it.toErrorResponseEntity() },
                 { ResponseEntity.ok(it) },
@@ -73,7 +73,7 @@ class ApplicationsEndpoint(
         @PathVariable("application_id") applicationId: String,
     ): ResponseEntity<out Any> {
         return authorizationService.findActiveUserId(token)
-            .map { userId -> applicationService.delete(userId, applicationId) }
+            .flatMap { userId -> applicationService.delete(userId, applicationId) }
             .fold(
                 { it.toErrorResponseEntity() },
                 { ResponseEntity.ok(it) },
