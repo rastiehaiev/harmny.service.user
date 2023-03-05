@@ -7,7 +7,6 @@ import io.harmny.service.user.request.UserCreateRequest
 import io.harmny.service.user.request.UserSignInRequest
 import io.harmny.service.user.request.UserUpdateRequest
 import io.harmny.service.user.response.TokenResponse
-import io.harmny.service.user.response.ValidityResponse
 import io.harmny.service.user.service.AuthorizationService
 import io.harmny.service.user.service.UserService
 import io.harmny.service.user.utils.ifLeft
@@ -65,16 +64,5 @@ class UserEndpoint(
         return authorizationService.signIn(request.email, request.password)
             .ifLeft { return it.toErrorResponseEntity() }
             .let { ResponseEntity.ok(TokenResponse(it)) }
-    }
-
-    @PostMapping("/validation")
-    fun validate(
-        @RequestHeader("X-Token") token: String,
-        @RequestHeader("X-Request-URI") requestUri: String,
-        @RequestHeader("X-Request-Method") requestMethod: String,
-    ): ResponseEntity<out Any> {
-        return authorizationService.validate(token, requestMethod, requestUri)
-            .ifLeft { return it.toErrorResponseEntity() }
-            .let { ResponseEntity.ok(ValidityResponse(it)) }
     }
 }

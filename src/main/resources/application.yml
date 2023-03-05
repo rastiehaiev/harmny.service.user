@@ -15,3 +15,6 @@ spring:
 
 server:
   port: 8081
+
+jwt:
+  key: ${JWT_TOKEN:DAVLtjoTHQ3uhsGm2VstWj5M2JsdhhxQPy71BL11XQ4E5OpRgfCYjNPELkP1M6g}
