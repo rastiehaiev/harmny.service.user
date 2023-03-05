@@ -1,12 +1,12 @@
-job("Publish to Docker Hub") {
-    host("Build artifacts and a Docker image") {
-        startOn {
-            gitPush {
-                branchFilter {
-                    +"refs/heads/main"
-                }
+job("Build & Publish to Docker Registry") {
+    startOn {
+        gitPush {
+            branchFilter {
+                +"refs/heads/main"
             }
         }
+    }
+    host("Build & Push Docker image") {
 
         // assign project secrets to environment variables
         env["SPACE_USER"] = Secrets("space_user")
