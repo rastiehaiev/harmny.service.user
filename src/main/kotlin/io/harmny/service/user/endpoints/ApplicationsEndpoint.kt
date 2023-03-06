@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
@@ -29,10 +28,8 @@ class ApplicationsEndpoint(
 ) {
 
     @GetMapping
-    fun listApplications(
-        @RequestHeader("X-Token") token: String,
-    ): ResponseEntity<out Any> {
-        return authorizationService.findActiveUserId(token)
+    fun listApplications(): ResponseEntity<out Any> {
+        return authorizationService.getCurrentUserId()
             .map { userId -> applicationService.findAllByUserId(userId) }
             .fold(
                 { it.toErrorResponseEntity() },
@@ -42,10 +39,9 @@ class ApplicationsEndpoint(
 
     @PostMapping
     fun createApplication(
-        @RequestHeader("X-Token") token: String,
         @RequestBody request: ApplicationCreateRequest,
     ): ResponseEntity<out Any> {
-        return authorizationService.findActiveUserId(token)
+        return authorizationService.getCurrentUserId()
             .flatMap { userId -> applicationService.create(userId, request) }
             .fold(
                 { it.toErrorResponseEntity() },
@@ -55,11 +51,10 @@ class ApplicationsEndpoint(
 
     @PutMapping("/{application_id}")
     fun updateApplication(
-        @RequestHeader("X-Token") token: String,
         @PathVariable("application_id") applicationId: String,
         @RequestBody request: ApplicationUpdateRequest,
     ): ResponseEntity<out Any> {
-        return authorizationService.findActiveUserId(token)
+        return authorizationService.getCurrentUserId()
             .flatMap { userId -> applicationService.update(userId, applicationId, request) }
             .fold(
                 { it.toErrorResponseEntity() },
@@ -69,10 +64,9 @@ class ApplicationsEndpoint(
 
     @DeleteMapping("/{application_id}")
     fun deleteApplication(
-        @RequestHeader("X-Token") token: String,
         @PathVariable("application_id") applicationId: String,
     ): ResponseEntity<out Any> {
-        return authorizationService.findActiveUserId(token)
+        return authorizationService.getCurrentUserId()
             .flatMap { userId -> applicationService.delete(userId, applicationId) }
             .fold(
                 { it.toErrorResponseEntity() },
@@ -82,11 +76,10 @@ class ApplicationsEndpoint(
 
     @PostMapping("/{application_id}/tokens")
     fun createApplicationToken(
-        @RequestHeader("X-Token") token: String,
         @PathVariable("application_id") applicationId: String,
         @RequestBody request: ApplicationTokenRequest,
     ): ResponseEntity<out Any> {
-        return authorizationService.findActiveUserId(token)
+        return authorizationService.getCurrentUserId()
             .flatMap { userId -> tokenService.create(userId, applicationId, request) }
             .fold(
                 { it.toErrorResponseEntity() },
@@ -99,10 +92,9 @@ class ApplicationsEndpoint(
 
     @GetMapping("/{application_id}/tokens")
     fun listApplicationTokens(
-        @RequestHeader("X-Token") token: String,
         @PathVariable("application_id") applicationId: String,
     ): ResponseEntity<out Any> {
-        return authorizationService.findActiveUserId(token)
+        return authorizationService.getCurrentUserId()
             .map { userId -> tokenService.list(userId, applicationId) }
             .fold(
                 { it.toErrorResponseEntity() },
@@ -112,11 +104,10 @@ class ApplicationsEndpoint(
 
     @DeleteMapping("/{application_id}/tokens/{token_id}")
     fun deleteApplicationToken(
-        @RequestHeader("X-Token") token: String,
         @PathVariable("application_id") applicationId: String,
         @PathVariable("token_id") tokenId: String,
     ): ResponseEntity<out Any> {
-        return authorizationService.findActiveUserId(token)
+        return authorizationService.getCurrentUserId()
             .flatMap { userId -> tokenService.delete(userId, applicationId, tokenId) }
             .fold(
                 { it.toErrorResponseEntity() },

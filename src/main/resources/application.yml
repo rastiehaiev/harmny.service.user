@@ -6,12 +6,12 @@ spring:
     name: "harmny-user-service"
   data:
     mongodb:
-      authentication-database: "harmny"
-      username: "harmny"
-      password: "harmny"
-      database: "harmny"
-      host: "localhost"
-      port: "27017"
+      authentication-database: ${SPRING_DATA_MONGODB_AUTH_DB:harmny}
+      username: ${SPRING_DATA_MONGODB_USERNAME:harmny}
+      password: ${SPRING_DATA_MONGODB_PASSWORD:harmny}
+      database: ${SPRING_DATA_MONGODB_DATABASE:harmny}
+      host: ${SPRING_DATA_MONGODB_HOST:localhost}
+      port: ${SPRING_DATA_MONGODB_PORT:27017}
 
 server:
   port: 8081

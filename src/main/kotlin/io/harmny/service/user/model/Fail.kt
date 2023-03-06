@@ -83,5 +83,7 @@ fun Fail.toErrorResponseEntity(): ResponseEntity<ErrorResponse> {
         this.type.startsWith("fail.internal") -> 500
         else -> 400
     }
-    return ResponseEntity.status(statusCode).body(ErrorResponse(ErrorObject(type, description, properties)))
+    return ResponseEntity.status(statusCode).body(toErrorResponse())
 }
+
+private fun Fail.toErrorResponse() = ErrorResponse(ErrorObject(type, description, properties))

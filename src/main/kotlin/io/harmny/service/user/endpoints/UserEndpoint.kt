@@ -15,7 +15,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
@@ -39,20 +38,18 @@ class UserEndpoint(
 
     @PutMapping
     fun updateUser(
-        @RequestHeader("X-Token") token: String,
         @RequestBody request: UserUpdateRequest,
     ): ResponseEntity<out Any> {
-        return authorizationService.findActiveUserId(token)
+        return authorizationService.getCurrentUserId()
             .flatMap { userId -> userService.update(userId, request).right() }
             .ifLeft { return it.toErrorResponseEntity() }
             .let { ResponseEntity.ok(it) }
     }
 
     @PostMapping("/master-token")
-    fun requestMasterToken(
-        @RequestHeader("X-Token") token: String,
-    ): ResponseEntity<out Any> {
-        return authorizationService.generateMasterToken(token)
+    fun requestMasterToken(): ResponseEntity<out Any> {
+        return authorizationService.getCurrentUserId()
+            .flatMap {userId -> authorizationService.generateMasterToken(userId) }
             .ifLeft { return it.toErrorResponseEntity() }
             .let { ResponseEntity.ok(TokenResponse(it)) }
     }

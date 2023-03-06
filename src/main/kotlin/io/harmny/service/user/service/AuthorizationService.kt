@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import io.harmny.service.user.filter.UserIdAuthenticationToken
 import io.harmny.service.user.model.ApplicationTokenDto
 import io.harmny.service.user.model.Fail
 import io.harmny.service.user.model.TokenAccessType
@@ -18,6 +19,7 @@ import io.harmny.service.user.properties.JwtProperties
 import io.harmny.service.user.utils.ifLeft
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import java.net.URI
 import java.time.Instant
@@ -35,10 +37,8 @@ class AuthorizationService(
     private val key = Keys.hmacShaKeyFor(jwtProperties.key.toByteArray())
     private val parser = Jwts.parserBuilder().setSigningKey(key).build()
 
-    fun generateMasterToken(tokenString: String): Either<Fail, String> {
-        return findActiveUser(tokenString).flatMap { user ->
-            userService.updateMasterTokenId(user.id)
-        }.flatMap { user ->
+    fun generateMasterToken(userId: String): Either<Fail, String> {
+        return userService.updateMasterTokenId(userId).flatMap { user ->
             val masterTokenId = user.masterTokenId
             if (masterTokenId == null) {
                 Fail.internal("master.token.creation")
@@ -47,6 +47,11 @@ class AuthorizationService(
                 token.toJwtString().right()
             }
         }
+    }
+
+    fun getCurrentUserId(): Either<Fail, String> {
+        val authToken = SecurityContextHolder.getContext().authentication as? UserIdAuthenticationToken?
+        return authToken?.userId?.right() ?: Fail.authentication("token.invalid")
     }
 
     fun findActiveUserId(tokenString: String): Either<Fail, String> {
