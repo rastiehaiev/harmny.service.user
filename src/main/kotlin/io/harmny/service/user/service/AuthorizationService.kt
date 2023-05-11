@@ -15,7 +15,7 @@ import io.harmny.service.user.model.TokenAccessType
 import io.harmny.service.user.model.TokenPermission
 import io.harmny.service.user.model.TokenResourceType
 import io.harmny.service.user.model.User
-import io.harmny.service.user.properties.JwtProperties
+import io.harmny.service.user.properties.HarmnyProperties
 import io.harmny.service.user.utils.ifLeft
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
@@ -31,10 +31,10 @@ class AuthorizationService(
     private val objectMapper: ObjectMapper,
     private val userService: UserService,
     private val tokenService: TokenService,
-    jwtProperties: JwtProperties,
+    harmnyProperties: HarmnyProperties,
 ) {
 
-    private val key = Keys.hmacShaKeyFor(jwtProperties.key.toByteArray())
+    private val key = Keys.hmacShaKeyFor(harmnyProperties.jwtKey.toByteArray())
     private val parser = Jwts.parserBuilder().setSigningKey(key).build()
 
     fun generateMasterToken(userId: String): Either<Fail, String> {
