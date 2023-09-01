@@ -11,7 +11,6 @@ job("Build & Publish to Docker Registry") {
         // assign project secrets to environment variables
         env["SPACE_USER"] = "{{ project:space_user }}"
         env["SPACE_TOKEN"] = "{{ project:space_token }}"
-        env["HARMNY_JWT_KEY"] = "{{ project:jwt_token }}"
 
         shellScript {
             content = """
