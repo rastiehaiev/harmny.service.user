@@ -4,21 +4,21 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
 import io.harmny.service.user.entity.ApplicationEntity
-import io.harmny.service.user.model.Application
 import io.harmny.service.user.model.Fail
+import io.harmny.service.user.model.dto.Application
 import io.harmny.service.user.repository.ApplicationRepository
-import io.harmny.service.user.repository.TokenRepository
-import io.harmny.service.user.request.ApplicationCreateRequest
-import io.harmny.service.user.request.ApplicationUpdateRequest
+import io.harmny.service.user.repository.ApplicationTokenRepository
 import io.harmny.service.user.utils.ifLeft
+import io.harmny.service.user.web.model.request.ApplicationCreateRequest
+import io.harmny.service.user.web.model.request.ApplicationUpdateRequest
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import java.util.UUID
 
 @Service
 class ApplicationService(
-    private val tokenRepository: TokenRepository,
     private val applicationRepository: ApplicationRepository,
+    private val applicationTokenRepository: ApplicationTokenRepository,
 ) {
 
     companion object {
@@ -59,7 +59,7 @@ class ApplicationService(
     fun delete(userId: String, applicationId: String): Either<Fail, Application> {
         val application = findByUserIdAndApplicationId(userId, applicationId).ifLeft { return it.left() }
 
-        tokenRepository.deleteAllByUserIdAndApplicationId(userId, applicationId)
+        applicationTokenRepository.deleteAllByUserIdAndApplicationId(userId, applicationId)
         applicationRepository.delete(application)
         return application.toModel().right()
     }

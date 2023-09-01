@@ -1,8 +1,8 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    val kotlinVersion = "1.8.10"
-    id("org.springframework.boot") version "2.7.7"
+    val kotlinVersion = "1.6.21"
+    id("org.springframework.boot") version "2.7.13"
     id("io.spring.dependency-management") version "1.0.15.RELEASE"
     kotlin("jvm") version kotlinVersion
     kotlin("plugin.spring") version kotlinVersion
@@ -10,7 +10,10 @@ plugins {
 
 group = "io.harmny"
 version = "0.0.1"
-java.sourceCompatibility = JavaVersion.VERSION_11
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+}
 
 repositories {
     mavenCentral()
@@ -20,6 +23,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
 
     implementation("org.bouncycastle:bcpkix-jdk15on:1.64")
 
@@ -35,6 +40,7 @@ dependencies {
 
     implementation("io.arrow-kt:arrow-core:1.1.3")
 
+    implementation("io.jsonwebtoken:jjwt-api:0.11.5")
     implementation("io.jsonwebtoken:jjwt-impl:0.11.5")
     implementation("io.jsonwebtoken:jjwt-jackson:0.11.5")
 
@@ -50,7 +56,7 @@ tasks.withType<Jar> {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
-        freeCompilerArgs = listOf("-Xjsr305=strict")
+        freeCompilerArgs += "-Xjsr305=strict"
         jvmTarget = "11"
     }
 }

@@ -6,15 +6,40 @@ spring:
     name: "harmny-user-service"
   data:
     mongodb:
-      authentication-database: ${SPRING_DATA_MONGODB_AUTH_DB:harmny}
-      username: ${SPRING_DATA_MONGODB_USERNAME:harmny}
-      password: ${SPRING_DATA_MONGODB_PASSWORD:harmny}
-      database: ${SPRING_DATA_MONGODB_DATABASE:harmny}
-      host: ${SPRING_DATA_MONGODB_HOST:localhost}
+      authentication-database: ${SPRING_DATA_MONGODB_AUTH_DB}
+      username: ${SPRING_DATA_MONGODB_USERNAME}
+      password: ${SPRING_DATA_MONGODB_PASSWORD}
+      database: ${SPRING_DATA_MONGODB_DATABASE}
+      host: ${SPRING_DATA_MONGODB_HOST}
       port: ${SPRING_DATA_MONGODB_PORT:27017}
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            clientId: ${SPRING_SECURITY_OAUTH2_CLIENT_GOOGLE_CLIENT_ID}
+            clientSecret: ${SPRING_SECURITY_OAUTH2_CLIENT_GOOGLE_CLIENT_SECRET}
+            redirectUri: "${SPRING_SECURITY_OAUTH2_CLIENT_BASE_REDIRECT_URL}/oauth2/callback/google"
+            scope:
+              - email
+              - profile
 
 server:
   port: 9091
 
 harmny:
-  jwt-key: ${HARMNY_JWT_TOKEN:DAVLtjoTHQ3uhsGm2VstWj5M2JsdhhxQPy71BL11XQ4E5OpRgfCYjNPELkP1M6g}
+  cors:
+    allowed-origins: ${HARMNY_CORS_ALLOWED_ORIGINS}
+  auth:
+    token-secret: ${HARMNY_AUTH_TOKEN_SECRET}
+    token-expiration-ms-ui: ${HARMNY_AUTH_TOKEN_EXPIRATION_MS_UI:864000000}
+    token-expiration-ms-default: ${HARMNY_AUTH_TOKEN_EXPIRATION_MS_DEFAULT:864000000}
+    refresh-token-expiration-delta-ms: ${HARMNY_AUTH_REFRESH_TOKEN_EXPIRATION_DELTA_MS:1209600000}
+  oauth2:
+    # After successfully authenticating with the OAuth2 Provider,
+    # we'll be generating an auth token for the user and sending the token to the
+    # redirectUri mentioned by the client in the /oauth2/authorize request.
+    # We're not using cookies because they won't work well in mobile clients.
+    authorized-redirect-uris:
+      - ${HARMNY_OAUTH2_AUTHORIZED_REDIRECT_URIS_UI}
+      - ${HARMNY_OAUTH2_AUTHORIZED_REDIRECT_URIS_GOOGLE}

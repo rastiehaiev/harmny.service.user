@@ -1,5 +1,6 @@
 package io.harmny.service.user.entity
 
+import io.harmny.service.user.model.AuthProvider
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 
@@ -11,6 +12,9 @@ data class UserEntity(
     var lastName: String?,
     var active: Boolean = false,
     val email: String,
-    var password: String,
+    var password: String?,
+    val authProvider: AuthProvider,
+    val profilePhotoUrl: String?,
     var masterTokenId: String? = null,
+    var refreshTokenId: String? = null,
 )
