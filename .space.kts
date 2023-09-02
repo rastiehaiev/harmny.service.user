@@ -1,4 +1,4 @@
-job("Build & Publish to Docker Registry") {
+job("Service-User Deploy") {
     startOn {
         gitPush {
             anyBranchMatching {

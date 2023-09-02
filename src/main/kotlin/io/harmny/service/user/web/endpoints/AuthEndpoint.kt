@@ -52,7 +52,9 @@ class AuthEndpoint(
     }
 
     @PostMapping("/refresh-token")
-    fun refreshToken(request: RefreshTokenRequest): ResponseEntity<out Any> {
+    fun refreshToken(
+        @RequestBody request: RefreshTokenRequest,
+    ): ResponseEntity<out Any> {
         return authorizationService.refreshToken(request)
             .ifLeft { return it.toErrorResponseEntity() }
             .let { (token, refreshToken) -> ResponseEntity.ok(TokenResponse(token, refreshToken)) }
