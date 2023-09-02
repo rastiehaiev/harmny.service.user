@@ -73,7 +73,7 @@ class AuthorizationService(
         val userId = user.takeIf { it.active }?.id
             ?: return Fail.authorization(key = "user.inactive")
 
-        if (tokenPrincipal.id == null || user.masterTokenId != tokenPrincipal.id) {
+        if (tokenPrincipal.id == null || user.refreshTokenId != tokenPrincipal.id) {
             return Fail.authorization(key = "refresh.token.expired")
         }
         return signInInternally(userId)
@@ -109,8 +109,6 @@ class AuthorizationService(
         if (token == null) {
             return Fail.authentication(key = "token.missing")
         }
-
-        log.info("[${token.userId}] Validating request [$method:$requestUri].")
 
         val expirationTime = token.expirationTime?.let { Instant.ofEpochMilli(it) }
         if (expirationTime != null && expirationTime.isBefore(Instant.now())) {
