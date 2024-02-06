@@ -7,7 +7,7 @@ import io.harmny.service.user.model.AuthProvider
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
-data class User(
+data class UserDto(
     val id: String,
     val firstName: String,
     val lastName: String?,
@@ -15,6 +15,4 @@ data class User(
     val email: String,
     val authProvider: AuthProvider,
     val profilePhotoUrl: String?,
-    val masterTokenId: String? = null,
-    val refreshTokenId: String? = null,
 )

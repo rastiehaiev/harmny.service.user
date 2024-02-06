@@ -4,18 +4,20 @@ import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
+import io.harmny.service.user.model.AuthProvider
 import io.harmny.service.user.model.Fail
 import io.harmny.service.user.properties.HarmnyUserServiceProperties
 import io.harmny.service.user.service.ApplicationTokenService
 import io.harmny.service.user.service.UserService
+import io.harmny.service.user.service.toUserAgentMapKey
 import io.harmny.service.user.utils.ifLeft
-import io.harmny.service.user.web.endpoints.ValidationEndpoint
+import io.harmny.service.user.web.instruments.IosTokenHandler
 import io.harmny.service.user.web.instruments.TokenProvider
 import io.harmny.service.user.web.model.TokenPermission
 import io.harmny.service.user.web.model.TokenPrincipal
 import io.harmny.service.user.web.model.request.ApplicationTokenRequest
+import io.harmny.service.user.web.model.request.IosIdTokenRequest
 import io.harmny.service.user.web.model.request.RefreshTokenRequest
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.net.URI
 import java.time.Instant
@@ -24,19 +26,15 @@ import java.time.Instant
 class AuthorizationService(
     private val userService: UserService,
     private val tokenProvider: TokenProvider,
+    private val iosTokenHandler: IosTokenHandler,
     private val properties: HarmnyUserServiceProperties,
+    private val userManagementService: UserManagementService,
     private val applicationTokenService: ApplicationTokenService,
 ) {
 
-    companion object {
-        private val log = LoggerFactory.getLogger(ValidationEndpoint::class.java)
-    }
-
-    fun requestMasterToken(userId: String): Either<Fail, String> {
-        return userService.updateMasterTokenId(userId).flatMap { masterTokenId ->
-            tokenProvider.createToken(TokenPrincipal(id = masterTokenId, userId = userId))
-                .token
-                .right()
+    fun requestMasterToken(userId: String, userAgent: String?): Either<Fail, String> {
+        return userService.updateMasterTokenId(userId, userAgent).flatMap { masterTokenId ->
+            tokenProvider.createToken(TokenPrincipal(id = masterTokenId, userId = userId)).token.right()
         }
     }
 
@@ -57,30 +55,53 @@ class AuthorizationService(
         }
     }
 
-    fun signIn(email: String, password: String): Either<Fail, Pair<String, String>> {
+    fun signIn(
+        email: String,
+        password: String,
+        userAgent: String?,
+    ): Either<Fail, Pair<String, String>> {
         val user = userService.findByEmailAndPassword(email, password)
             ?: return Fail.authentication(key = "user.not.found.by.credentials")
         val userId = user.takeIf { it.active }?.id
             ?: return Fail.authorization(key = "user.inactive")
 
-        return signInInternally(userId)
+        return signInInternally(userId, userAgent)
     }
 
-    fun refreshToken(request: RefreshTokenRequest): Either<Fail, Pair<String, String>> {
+    fun refreshToken(
+        request: RefreshTokenRequest,
+        userAgent: String?,
+    ): Either<Fail, Pair<String, String>> {
         val tokenPrincipal = tokenProvider.parseToken(request.token).ifLeft { return it.left() }
         val user = userService.findById(tokenPrincipal.userId)
             ?: return Fail.authentication(key = "user.not.found.by.credentials")
         val userId = user.takeIf { it.active }?.id
             ?: return Fail.authorization(key = "user.inactive")
 
-        if (tokenPrincipal.id == null || user.refreshTokenId != tokenPrincipal.id) {
+        val refreshTokenId = user.refreshTokenIds[userAgent.toUserAgentMapKey()]
+
+        if (tokenPrincipal.id == null || refreshTokenId != tokenPrincipal.id) {
             return Fail.authorization(key = "refresh.token.expired")
         }
-        return signInInternally(userId)
+        return signInInternally(userId, userAgent)
     }
 
-    private fun signInInternally(userId: String): Either<Fail, Pair<String, String>> {
-        val refreshTokenId = userService.rotateRefreshTokenId(userId).ifLeft { return it.left() }
+    fun exchangeIosIdTokenToToken(
+        request: IosIdTokenRequest,
+        userAgent: String?,
+    ): Either<Fail, Pair<String, String>> {
+        return iosTokenHandler.verifyAndGet(request.idToken).flatMap { userInfo ->
+            userManagementService.getOrCreate(userInfo.getEmail(), userInfo, AuthProvider.google).flatMap { user ->
+                signInInternally(user.id, userAgent)
+            }
+        }
+    }
+
+    private fun signInInternally(
+        userId: String,
+        userAgent: String?,
+    ): Either<Fail, Pair<String, String>> {
+        val refreshTokenId = userService.rotateRefreshTokenId(userId, userAgent).ifLeft { return it.left() }
         val tokenExpirationTime = Instant.now().plusMillis(properties.auth.tokenExpirationMsUi).toEpochMilli()
 
         val tokenPrincipal = TokenPrincipal(

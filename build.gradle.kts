@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    val kotlinVersion = "1.6.21"
+    val kotlinVersion = "1.9.10"
     id("org.springframework.boot") version "2.7.13"
     id("io.spring.dependency-management") version "1.0.15.RELEASE"
     kotlin("jvm") version kotlinVersion
@@ -17,6 +17,7 @@ java {
 
 repositories {
     mavenCentral()
+    maven("https://maven.pkg.jetbrains.space/public/p/space/maven")
 }
 
 dependencies {
@@ -33,6 +34,8 @@ dependencies {
 
     implementation("commons-validator:commons-validator:1.7")
 
+    implementation("com.google.auth:google-auth-library-oauth2-http:1.20.0")
+
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
     implementation("org.springdoc:springdoc-openapi-ui:1.6.14")
@@ -43,6 +46,9 @@ dependencies {
     implementation("io.jsonwebtoken:jjwt-api:0.11.5")
     implementation("io.jsonwebtoken:jjwt-impl:0.11.5")
     implementation("io.jsonwebtoken:jjwt-jackson:0.11.5")
+
+    implementation("io.ktor:ktor-client-cio-jvm:2.0.3")
+    implementation("org.jetbrains:space-sdk-jvm:2024.1-175203")
 
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 

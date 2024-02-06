@@ -7,7 +7,7 @@ import arrow.core.right
 import io.harmny.service.user.entity.UserEntity
 import io.harmny.service.user.model.AuthProvider
 import io.harmny.service.user.model.Fail
-import io.harmny.service.user.model.dto.User
+import io.harmny.service.user.model.User
 import io.harmny.service.user.repository.UserRepository
 import io.harmny.service.user.utils.ifLeft
 import io.harmny.service.user.web.model.request.UserUpdateRequest
@@ -16,12 +16,14 @@ import org.apache.commons.validator.routines.EmailValidator
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import java.util.Base64
 import java.util.UUID
 
 @Service
 class UserService(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder,
+    private val notificationService: NotificationService,
 ) {
 
     companion object {
@@ -68,7 +70,10 @@ class UserService(
             authProvider = request.authProvider,
             profilePhotoUrl = request.profilePhotoUrl,
         )
-        return userRepository.save(user).toModel().right()
+
+        return userRepository.save(user).toModel()
+            .also { notificationService.onUserRegistered(it) }
+            .right()
     }
 
     fun update(userId: String, request: UserUpdateRequest): Either<Fail, User> {
@@ -82,19 +87,21 @@ class UserService(
         return userRepository.save(user).toModel().right()
     }
 
-    fun updateMasterTokenId(userId: String): Either<Fail, String> {
+    fun updateMasterTokenId(userId: String, userAgent: String?): Either<Fail, String> {
         val user = userRepository.findByIdOrNull(userId) ?: return Fail.input(key = "user.not.found")
         val masterTokenId = RandomStringUtils.randomAlphanumeric(8)
+
         user.masterTokenId = masterTokenId
         userRepository.save(user)
 
         return masterTokenId.right()
     }
 
-    fun rotateRefreshTokenId(userId: String): Either<Fail, String> {
+    fun rotateRefreshTokenId(userId: String, userAgent: String?): Either<Fail, String> {
         val user = userRepository.findByIdOrNull(userId) ?: return Fail.input(key = "user.not.found")
         val refreshTokenId = RandomStringUtils.randomAlphanumeric(8)
-        user.refreshTokenId = refreshTokenId
+
+        user.refreshTokenIds[userAgent.toUserAgentMapKey()] = refreshTokenId
         userRepository.save(user)
 
         return refreshTokenId.right()
@@ -154,7 +161,7 @@ class UserService(
             authProvider = this.authProvider,
             profilePhotoUrl = this.profilePhotoUrl,
             masterTokenId = this.masterTokenId,
-            refreshTokenId = this.refreshTokenId,
+            refreshTokenIds = this.refreshTokenIds,
         )
     }
 }
@@ -167,3 +174,8 @@ data class CreateUserRequest(
     val password: String? = null,
     val profilePhotoUrl: String? = null,
 )
+
+fun String?.toUserAgentMapKey(): String {
+    val userAgent = this ?: "default"
+    return Base64.getEncoder().encodeToString(userAgent.toByteArray())
+}

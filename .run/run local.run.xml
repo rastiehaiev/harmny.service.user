@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="run local" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <option name="ACTIVE_PROFILES" value="local" />
+    <module name="harmny.service.user.main" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="io.harmny.service.user.HarmnyUserServiceApplicationKt" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="io.harmny.service.user.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

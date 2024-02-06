@@ -2,7 +2,7 @@ job("Service-User Deploy") {
     startOn {
         gitPush {
             anyBranchMatching {
-                +"refs/heads/main"
+                +"refs/heads/HARMNY-T-66"
             }
         }
     }

@@ -62,10 +62,10 @@ class TokenProvider(
                 ?: Fail.authorization(key = "token.invalid")
         } catch (e: Exception) {
             when (e) {
-                is SignatureException -> log.error("Invalid JWT signature for token '$tokenString'.")
-                is MalformedJwtException -> log.error("Invalid JWT token '$tokenString'.")
-                is ExpiredJwtException -> log.error("Expired JWT token '$tokenString'.")
-                is UnsupportedJwtException -> log.error("Unsupported JWT token '$tokenString'.")
+                is SignatureException -> log.error("Invalid JWT signature for token.")
+                is MalformedJwtException -> log.error("Invalid JWT token.")
+                is ExpiredJwtException -> log.error("Expired JWT token.")
+                is UnsupportedJwtException -> log.error("Unsupported JWT token.")
                 else -> log.error("Failed to parse token '$tokenString'. Reason: ${e.message}", e)
             }
             Fail.authorization(key = "token.invalid")

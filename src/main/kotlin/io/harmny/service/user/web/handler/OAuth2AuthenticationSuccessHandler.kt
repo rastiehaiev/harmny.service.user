@@ -52,10 +52,11 @@ class OAuth2AuthenticationSuccessHandler(
         response: HttpServletResponse,
         authentication: Authentication,
     ): String {
+        val userAgent = request.getHeader("user-agent")
         val targetUrl = getTargetUrl(request).ifLeft { throw AuthenticationFailedException(it) }
         val principal = authentication.principal as UserPrincipal
         val (token, tokenExpiration) = tokenProvider.createToken(principal)
-        val refreshToken = generateRefreshToken(principal, tokenExpiration)
+        val refreshToken = generateRefreshToken(principal, tokenExpiration, userAgent)
         return UriComponentsBuilder.fromUriString(targetUrl)
             .queryParam("token", token)
             .queryParam("refresh-token", refreshToken)
@@ -87,8 +88,12 @@ class OAuth2AuthenticationSuccessHandler(
         httpCookieOAuth2AuthorizationRequestRepository.removeAuthorizationRequestCookies(request, response)
     }
 
-    private fun generateRefreshToken(principal: UserPrincipal, tokenExpiration: Date): String {
-        val refreshTokenId = userService.rotateRefreshTokenId(principal.id).ifLeft {
+    private fun generateRefreshToken(
+        principal: UserPrincipal,
+        tokenExpiration: Date,
+        userAgent: String?,
+    ): String {
+        val refreshTokenId = userService.rotateRefreshTokenId(principal.id, userAgent).ifLeft {
             throw AuthenticationFailedException(it)
         }
         val refreshTokenPrincipal = TokenPrincipal(

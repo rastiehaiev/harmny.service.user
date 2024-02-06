@@ -40,6 +40,12 @@ harmny:
     # we'll be generating an auth token for the user and sending the token to the
     # redirectUri mentioned by the client in the /oauth2/authorize request.
     # We're not using cookies because they won't work well in mobile clients.
+    ios-app-client-id: ${HARMNY_OAUTH2_IOS_APP_CLIENT_ID}
     authorized-redirect-uris:
       - ${HARMNY_OAUTH2_AUTHORIZED_REDIRECT_URIS_UI}
       - ${HARMNY_OAUTH2_AUTHORIZED_REDIRECT_URIS_GOOGLE}
+  space:
+    client-id: ${HARMNY_SPACE_CLIENT_ID}
+    client-secret: ${HARMNY_SPACE_CLIENT_SECRET}
+    server-url: ${HARMNY_SPACE_CLIENT_SERVER_URL}
+    notifications-channel-id: ${HARMNY_SPACE_NOTIFICATIONS_CHANNEL_ID}

@@ -16,5 +16,5 @@ data class UserEntity(
     val authProvider: AuthProvider,
     val profilePhotoUrl: String?,
     var masterTokenId: String? = null,
-    var refreshTokenId: String? = null,
+    var refreshTokenIds: HashMap<String, String> = HashMap(),
 )

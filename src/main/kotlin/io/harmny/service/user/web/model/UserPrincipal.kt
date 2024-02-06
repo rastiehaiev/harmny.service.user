@@ -1,6 +1,6 @@
 package io.harmny.service.user.web.model
 
-import io.harmny.service.user.model.dto.User
+import io.harmny.service.user.model.User
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.oauth2.core.user.OAuth2User

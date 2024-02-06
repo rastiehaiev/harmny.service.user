@@ -4,15 +4,13 @@ import arrow.core.Either
 import io.harmny.service.user.model.AuthProvider
 import io.harmny.service.user.model.Fail
 import io.harmny.service.user.model.Fails
-import io.harmny.service.user.model.dto.User
-import io.harmny.service.user.service.CreateUserRequest
+import io.harmny.service.user.model.User
 import io.harmny.service.user.service.UserService
 import io.harmny.service.user.utils.ifLeft
 import io.harmny.service.user.web.exception.AuthenticationFailedException
 import io.harmny.service.user.web.model.GoogleOAuth2UserInfo
 import io.harmny.service.user.web.model.OAuth2UserInfo
 import io.harmny.service.user.web.model.UserPrincipal
-import io.harmny.service.user.web.model.request.UserUpdateRequest
 import org.slf4j.LoggerFactory
 import org.springframework.security.authentication.InternalAuthenticationServiceException
 import org.springframework.security.core.userdetails.UserDetails
@@ -27,6 +25,7 @@ import javax.naming.AuthenticationException
 @Service
 class UserPrincipalService(
     private val userService: UserService,
+    private val userManagementService: UserManagementService,
 ) : DefaultOAuth2UserService(), UserDetailsService {
 
     companion object {
@@ -64,46 +63,7 @@ class UserPrincipalService(
         val email = oAuth2UserInfo.getEmail().takeIf { it.isNotBlank() }
             ?: return Fail.authentication("email.from.oauth2.provider.empty")
 
-        val user = userService.findByEmail(email)
-        return if (user == null) {
-            registerNewUser(authProvider, oAuth2UserInfo)
-        } else {
-            if (user.authProvider != authProvider) {
-                Fail.authentication(
-                    key = "email.from.oauth2.provider.empty",
-                    properties = mapOf(
-                        "provider.attempted" to authProvider,
-                        "provider.user" to user.authProvider,
-                    )
-                )
-            } else {
-                updateExistingUser(user, oAuth2UserInfo)
-            }
-        }
-    }
-
-    private fun registerNewUser(
-        authProvider: AuthProvider,
-        oAuth2UserInfo: OAuth2UserInfo,
-    ): Either<Fail, User> {
-        val (firstName, lastName) = getFirstAndLastNames(oAuth2UserInfo.getName())
-        val userCreateRequest = CreateUserRequest(
-            firstName = firstName,
-            lastName = lastName,
-            email = oAuth2UserInfo.getEmail(),
-            authProvider = authProvider,
-            profilePhotoUrl = oAuth2UserInfo.getImageUrl(),
-        )
-        return userService.create(userCreateRequest)
-    }
-
-    private fun updateExistingUser(
-        existingUser: User,
-        oAuth2UserInfo: OAuth2UserInfo,
-    ): Either<Fail, User> {
-        val (firstName, lastName) = getFirstAndLastNames(oAuth2UserInfo.getName())
-        val request = UserUpdateRequest(firstName, lastName, imageUrl = oAuth2UserInfo.getImageUrl())
-        return userService.update(existingUser.id, request)
+        return userManagementService.getOrCreate(email, oAuth2UserInfo, authProvider)
     }
 
     private fun getOAuth2UserInfo(authProvider: AuthProvider, attributes: Map<String, Any>): OAuth2UserInfo {
@@ -111,12 +71,6 @@ class UserPrincipalService(
             GoogleOAuth2UserInfo(attributes)
         } else {
             throw AuthenticationFailedException(Fails.authentication("auth.provider.unsupported"))
-        }
-    }
-
-    private fun getFirstAndLastNames(name: String): Pair<String, String?> {
-        return name.split(" ").let {
-            if (it.size > 1) it[0] to it[1] else it[0] to null
         }
     }
 

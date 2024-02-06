@@ -9,6 +9,7 @@ data class HarmnyUserServiceProperties(
     val cors: Cors,
     val auth: Auth,
     val oAuth2: OAuth2,
+    val space: SpaceConnectionDetails,
 )
 
 data class Cors(
@@ -24,4 +25,12 @@ data class Auth(
 
 data class OAuth2(
     val authorizedRedirectUris: List<String> = emptyList(),
+    val iosAppClientId: String,
+)
+
+data class SpaceConnectionDetails(
+    val clientId: String,
+    val clientSecret: String,
+    val serverUrl: String,
+    val notificationsChannelId: String,
 )
